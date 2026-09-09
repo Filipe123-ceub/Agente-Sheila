@@ -1,0 +1,781 @@
+{
+  "name": "fluxo sheila",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheila-zapzap",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        32,
+        0
+      ],
+      "id": "d1785a6f-10c5-44d7-b3da-7b761fe98bc2",
+      "name": "Webhook",
+      "webhookId": "4ed1650c-37c5-4637-94a2-b6557efb94f7"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.telefone }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        544,
+        144
+      ],
+      "id": "a4971ee8-6812-45e2-b95e-618a2f7f8af3",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "H2VnxONUV54RGckj",
+          "name": "Banco_Polimatas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensagem }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=CRÍTICO: Você deve responder APENAS com um objeto JSON contendo valores\nreais preenchidos (texto de verdade), nunca a definição do schema/formato\nJSON em si. Nunca inclua as palavras \"type\", \"properties\", \"enum\" ou\n\"required\" na sua resposta — essas são apenas a estrutura interna, não o\nque você deve escrever.\n\nVocê é Sheila, atendente virtual do escritório de advocacia do Dr. Danilo\nDuarte. Você atua via WhatsApp e seu papel é EXCLUSIVAMENTE de atendimento\ne triagem inicial — você NÃO é advogada e NUNCA deve se apresentar como\ntal.\n\n## Contexto temporal (CRÍTICO)\nData de hoje: {{ $now.setZone('America/Sao_Paulo').toFormat('dd/MM/yyyy (cccc)') }}\n\nSEMPRE calcule datas relativas mencionadas pelo lead (hoje, amanhã,\n\"semana que vem\", \"terça-feira que vem\", \"próxima segunda\", etc.) tomando\ncomo base exclusivamente a \"Data de hoje\" informada acima — nunca com\nbase em qualquer suposição própria sobre que dia é hoje. Ao chamar a\nferramenta de agendamento, o campo de data/hora (data_inicio) deve\nsempre corresponder a uma data igual ou posterior à \"Data de hoje\", nunca\nanterior. Se o cálculo resultar em uma data no passado, refaça o cálculo\nusando a \"Data de hoje\" como referência antes de chamar a ferramenta.\n\n## Sua missão\n1. Se apresentar de forma calorosa e profissional como Sheila, atendente\n   do escritório.\n2. Entender o motivo do contato do lead (geralmente vindo de um anúncio\n   sobre aposentadoria).\n3. Coletar, de forma natural e conversacional (uma pergunta por vez, sem\n   parecer formulário), os seguintes dados:\n   - Nome completo\n   - Idade\n   - Gênero (necessário para aplicar corretamente as regras do INSS)\n   - Tempo de contribuição ao INSS (em anos), se souber\n   - Tipo de contribuinte (CLT, autônomo, rural, servidor público, etc.)\n   - Se já deu entrada em algum pedido de aposentadoria antes\n   - E-mail\n4. Caso o lead mencione uma necessidade jurídica que NÃO seja\n   aposentadoria/previdenciário (ex: trabalhista, divórcio, pensão\n   alimentícia, defesa do consumidor, questões cíveis em geral), NÃO\n   descarte a conversa. Colete os dados básicos (nome, telefone, do que\n   se trata) e informe educadamente que um especialista da área vai\n   entrar em contato, já que o escritório conta com parceiros.\n\n## Regras absolutas (NUNCA quebre estas regras)\n- NUNCA informe valores, preços, honorários, ou qualquer dado financeiro\n  do serviço, mesmo que o lead insista ou pergunte de forma indireta\n  (\"mais ou menos quanto custa?\", \"é caro?\"). Responda que isso será\n  tratado diretamente na consulta com o Dr. Danilo.\n- NUNCA se identifique como advogada, nem diga frases como \"você tem\n  direito\", \"você vai ganhar\", \"posso garantir\", ou qualquer afirmação\n  que soe como parecer jurídico definitivo. Você coleta informações; quem\n  avalia o caso é o Dr. Danilo.\n- NUNCA opine sobre o mérito jurídico do caso do lead.\n- Se o lead insistir em consultoria jurídica pelo chat, responda que isso\n  será tratado com atenção na consulta, e o objetivo agora é só entender\n  a situação dele para preparar o atendimento.\n\n## Uso de ferramentas\n- Use a ferramenta de verificação de elegibilidade assim que tiver idade,\n  gênero e tempo de contribuição do lead.\n- Use a ferramenta de disponibilidade de agenda apenas depois de\n  confirmar que o lead é elegível (ou quando ele pedir para agendar).\n- Use a ferramenta de agendamento somente após o lead confirmar\n  explicitamente um horário oferecido.\n- NUNCA declare que uma consulta foi agendada ou confirmada sem antes\n  ter chamado a ferramenta de agendamento NESTA MESMA MENSAGEM e recebido\n  confirmação de sucesso dela. Se a ferramenta não retornar sucesso, ou\n  se você não tiver certeza de que ela foi executada, informe ao lead que\n  houve um problema técnico e que você vai verificar, em vez de confirmar\n  algo que não aconteceu de fato.\n- Se o lead disser que um agendamento anterior não chegou por e-mail ou\n  perguntar sobre um agendamento já feito em mensagens passadas, NÃO\n  chame a ferramenta de agendamento de novo (isso criaria um evento\n  duplicado). Informe que vai verificar e que a equipe humana do\n  escritório fará a checagem manual, sem prometer reenvio automático.\n\n## Após coletar os dados\n- Se os dados indicarem que o lead JÁ atende aos requisitos de\n  aposentadoria pela regra vigente (isso será validado pela ferramenta de\n  elegibilidade, não por você mesma), prossiga oferecendo o agendamento\n  de uma consulta.\n- Ofereça apenas horários dentro da janela permitida (segunda a\n  quinta-feira, das 09h às 17h) — os horários específicos disponíveis\n  serão fornecidos a você pela ferramenta de agenda.\n- Confirme o horário escolhido pelo lead antes de finalizar o\n  agendamento.\n\n## Tom de voz\nCordial, acolhedor, paciente — muitas vezes quem procura esse tipo de\nanúncio está ansioso ou cansado de esperar pela aposentadoria. Seja\nhumana no tom, mas sempre dentro dos limites acima.\n\n## Formato de saída\nSempre preencha \"resposta_para_lead\" com o texto que deve ser enviado ao\nlead pelo WhatsApp. Preencha \"acao_realizada\" com \"agendou_consulta\"\nAPENAS quando você tiver chamado a ferramenta de agendamento NESTA MESMA\nMENSAGEM e ela tiver retornado sucesso — nunca com base apenas no lead\nter escolhido um horário. Preencha com \"encaminhou_outra_area\" quando\ntiver identificado necessidade de outra área jurídica nesta mensagem;\ncaso contrário, use \"continuou_conversa\", mesmo que o lead já tenha\nconfirmado um horário na mensagem anterior. Preencha \"resumo_conversa\"\ncom um resumo objetivo (2-3 frases) sempre que \"acao_realizada\" for\ndiferente de \"continuou_conversa\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        -96
+      ],
+      "id": "9118977d-4e14-4cf8-96fb-b8cba5eeeb20",
+      "name": "Sheila",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "description": "  Verifica se o lead já tem direito à aposentadoria pela regra vigente do\n  INSS. Use assim que tiver coletado idade, gênero, tempo de contribuição\n  e se o lead contribuía antes de 13/11/2019.",
+        "jsCode": "const idade = Number(query.idade);\nconst genero = (query.genero || \"\").toLowerCase();\nconst tempoContribuicao = Number(query.tempo_contribuicao);\nconst contribuiaAntesReforma = query.contribuia_antes_2019 === true;\n\nfunction isMulher(g) {\n  return g.startsWith(\"f\");\n}\n\nconst pontosNecessarios = isMulher(genero) ? 93 : 103;\nconst tempoMinContribuicao = isMulher(genero) ? 30 : 35;\nconst idadeMinProgressiva = isMulher(genero) ? 59.5 : 64.5;\nconst idadeMinGeral = isMulher(genero) ? 62 : 65;\nconst tempoMinGeral = isMulher(genero) ? 15 : 20;\n\nlet qualificado = false;\nlet regraAplicavel = null;\nconst motivos = [];\n\n// Regra 1: Aposentadoria programada (regra geral)\nif (idade >= idadeMinGeral && tempoContribuicao >= tempoMinGeral) {\n  qualificado = true;\n  regraAplicavel = \"Aposentadoria programada (regra geral)\";\n  motivos.push(`Idade ${idade} >= ${idadeMinGeral} e contribuição ${tempoContribuicao} >= ${tempoMinGeral} anos`);\n}\n\n// Regra 2: Regra de pontos (transição)\nif (!qualificado && contribuiaAntesReforma) {\n  const pontos = idade + tempoContribuicao;\n  if (pontos >= pontosNecessarios && tempoContribuicao >= tempoMinContribuicao) {\n    qualificado = true;\n    regraAplicavel = \"Regra de pontos (transição)\";\n    motivos.push(`Pontos ${pontos} >= ${pontosNecessarios} e contribuição ${tempoContribuicao} >= ${tempoMinContribuicao} anos`);\n  }\n}\n\n// Regra 3: Idade mínima progressiva (transição)\nif (!qualificado && contribuiaAntesReforma) {\n  if (idade >= idadeMinProgressiva && tempoContribuicao >= tempoMinContribuicao) {\n    qualificado = true;\n    regraAplicavel = \"Idade mínima progressiva (transição)\";\n    motivos.push(`Idade ${idade} >= ${idadeMinProgressiva} e contribuição ${tempoContribuicao} >= ${tempoMinContribuicao} anos`);\n  }\n}\n\nif (!qualificado) {\n  motivos.push(\"Não atende aos requisitos mínimos identificados nas regras avaliadas.\");\n}\n\nconst resultado = {\n  qualificado,\n  regra_aplicavel: regraAplicavel,\n  detalhes_avaliacao: motivos,\n  aviso: \"Esta é uma triagem automatizada preliminar, não substitui análise jurídica do Dr. Danilo.\"\n};\n\nreturn JSON.stringify(resultado);",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "  {\n    \"type\": \"object\",\n    \"properties\": {\n      \"idade\": { \"type\": \"number\" },\n      \"genero\": { \"type\": \"string\", \"enum\": [\"masculino\", \"feminino\"] },\n      \"tempo_contribuicao\": { \"type\": \"number\" },\n      \"contribuia_antes_2019\": { \"type\": \"boolean\" }\n    },\n    \"required\": [\"idade\", \"genero\", \"tempo_contribuicao\", \"contribuia_antes_2019\"]\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        144
+      ],
+      "id": "f41ed3fc-1fcb-4dfe-b687-18db83699271",
+      "name": "verificar_elegibilidade"
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "filipefialhocosta@gmail.com",
+          "mode": "list",
+          "cachedResultName": "filipefialhocosta@gmail.com"
+        },
+        "timeMin": "={{ $fromAI('data_inicio', 'Data e hora de início do período a verificar disponibilidade, em formato ISO 8601. Deve ser sempre um dia entre segunda e quinta-feira, a partir das 09:00.', 'string') }}",
+        "timeMax": "={{ $fromAI('data_fim', 'Data e hora de término do período a verificar disponibilidade, em formato ISO 8601. Deve respeitar o mesmo dia informado em data_inicio, até no máximo 17:00.', 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        144
+      ],
+      "id": "993ab913-5c6c-47dd-9342-87f9fa595cef",
+      "name": "verificar_disponibilidade",
+      "notesInFlow": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "zYTvn61EzMOqenZ8",
+          "name": "Google Calendar account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.acao_realizada }}",
+                    "rightValue": "agendou_consulta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "36c632e7-10f8-4160-afe8-167d083461dd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Agendou"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "155a2b9a-f14d-42e9-afc6-8bc195ab4695",
+                    "leftValue": "={{ $json.acao_realizada }}",
+                    "rightValue": "encaminhou_outra_area",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Outra Area"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        -304
+      ],
+      "id": "f02e4df2-f4f7-4764-b3d6-db1e5eaf47a6",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evo2.polimatas.tec.br/message/sendText/Sheila",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Edit Fields').item.json.telefone.split('@')[0] }}\",\n  \"text\": \"{{ $json.resposta_para_lead }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1600,
+        -96
+      ],
+      "id": "7d15a17c-bc4a-41e5-8d6b-2c196c95eedf",
+      "name": "Responder Lead",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FeJkKuBU85fuEo4Y",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evo2.polimatas.tec.br/message/sendText/Sheila",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"556183446313\",\n  \"text\": \"📋 Novo lead: {{ $('Edit Fields').item.json.nome }}\\nTelefone: {{ $('Edit Fields').item.json.telefone.split('@')[0] }}\\nSituação: {{ $json.acao_realizada }}\\n\\nResumo:\\n{{ $json.resumo_conversa }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1600,
+        -464
+      ],
+      "id": "3c858a06-d1a2-484b-a787-f8c538699f08",
+      "name": "Notificar Agendamento",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FeJkKuBU85fuEo4Y",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://evo2.polimatas.tec.br/message/sendText/Sheila",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"556183446313\",\n  \"text\": \"⚠️ Lead de outra área jurídica identificado\\n\\nLead: {{ $('Edit Fields').item.json.nome }}\\nTelefone: {{ $('Edit Fields').item.json.telefone.split('@')[0] }}\\n\\nResumo:\\n{{ $json.resumo_conversa }}\\n\\nAvalie se cabe encaminhamento a um parceiro.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1600,
+        -272
+      ],
+      "id": "af08afa5-fd86-42cf-90ad-75491154e461",
+      "name": "Notificar Outra Área",
+      "retryOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FeJkKuBU85fuEo4Y",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "agente_sheila_logs",
+          "mode": "list",
+          "cachedResultName": "agente_sheila_logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telefone": "={{ $('Edit Fields').item.json.telefone.split('@')[0] }}",
+            "nome": "={{ $('Edit Fields').item.json.nome }}",
+            "mensagem_lead": "={{ $('Edit Fields').item.json.mensagem }}",
+            "resposta_sheila": "={{ $json.resposta_para_lead }}",
+            "acao_realizada": "={{ $json.acao_realizada }}",
+            "resumo_conversa": "={{ $json.resumo_conversa }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "telefone",
+              "displayName": "telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nome",
+              "displayName": "nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mensagem_lead",
+              "displayName": "mensagem_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resposta_sheila",
+              "displayName": "resposta_sheila",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "acao_realizada",
+              "displayName": "acao_realizada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "resumo_conversa",
+              "displayName": "resumo_conversa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "criado_em",
+              "displayName": "criado_em",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1600,
+        96
+      ],
+      "id": "4b789d06-ca9c-4377-a8e5-e675c40364ba",
+      "name": "Log Auditoria",
+      "retryOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "H2VnxONUV54RGckj",
+          "name": "Banco_Polimatas"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "15c02bef-b41e-4cb6-aef0-8c9c45d71422",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": {},
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "beb75cfb-4599-4a57-ab5e-a19409e39368",
+              "leftValue": "={{ $json.body.data.message.conversation }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "77475bed-c52c-41c8-a333-8cd264375361",
+              "leftValue": "=   {{ $json.body.data.key.remoteJid }}",
+              "rightValue": "   556182916104@s.whatsapp.net",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        256,
+        0
+      ],
+      "id": "f17ea1fd-a3d3-4879-a533-44b637a7bff6",
+      "name": "Filtrar Mensagem do Lead"
+    },
+    {
+      "parameters": {
+        "content": "##  Entrada de Leads\nRecebe mensagens via Evolution API (WhatsApp).\nFiltra apenas mensagens de texto vindas do lead\n(ignora mensagens da própria IA e mídias não suportadas).",
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -288
+      ],
+      "id": "95cba0e0-7b53-4969-a692-bb1a0f81a7ce",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "##  Agente Sheila\nIA que conduz a conversa, coleta dados do lead e\ndecide quando usar as ferramentas de elegibilidade,\ndisponibilidade e agendamento. Sempre retorna\nresposta estruturada (JSON).",
+        "width": 448,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -288
+      ],
+      "id": "5833fee2-7225-449e-813c-8f820cf6aaab",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "##  Saídas e Notificações\nResponde ao lead, notifica o Dr. Danilo (agendamento\nou lead de outra área) e registra a interação para\nauditoria.",
+        "height": 176,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        -656
+      ],
+      "id": "16658389-da8e-456c-9598-87f329306ca3",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "44e70c22-f253-4504-8615-64d65ab6309f",
+              "name": "telefone",
+              "value": "={{ $json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "b533f5b8-660c-4910-9743-14984806e021",
+              "name": "mensagem",
+              "value": "=  {{ $json.body.data.message.conversation }}",
+              "type": "string"
+            },
+            {
+              "id": "2de9522c-2eb3-4276-9fb5-651788d0b988",
+              "name": "nome",
+              "value": "=  {{ $json.body.data.pushName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        496,
+        -96
+      ],
+      "id": "9bf6b420-bab6-4ebf-bee4-9ede12d3fa2c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        144
+      ],
+      "id": "bb48b9c2-b07a-497a-a21d-70e958b608e5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8aQSPcILq2UKCNZn",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        144
+      ],
+      "id": "80594915-c584-4b02-884c-879d04fe3170",
+      "name": "Auto-fixing Output Parser",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"resposta_para_lead\": {\n      \"type\": \"string\",\n      \"description\": \"Texto que será enviado ao lead pelo WhatsApp\"\n    },\n    \"acao_realizada\": {\n      \"type\": \"string\",\n      \"enum\": [\"agendou_consulta\", \"encaminhou_outra_area\", \"continuou_conversa\"]\n    },\n    \"resumo_conversa\": {\n      \"type\": \"string\",\n      \"description\": \"Resumo objetivo (2-3 frases), preenchido apenas quando acao_realizada for diferente de continuou_conversa\"\n    }\n  },\n  \"required\": [\"resposta_para_lead\", \"acao_realizada\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1280,
+        304
+      ],
+      "id": "319d612d-daef-4b1d-bfef-7d4fac7587c6",
+      "name": "Structured Output Parser",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "5b2b5f6d-37b7-4cdc-857d-6810602ea2d3",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8aQSPcILq2UKCNZn",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "\"Agenda uma consulta no Google Calendar. Use quando o lead confirmar data e horário. Requer: data de início (dia útil, segunda a quinta, entre 09h e 17h, formato ISO 8601), título da consulta e e-mail do lead. Envia convite por e-mail automaticamente para o lead e para o Dr. Danilo.\"",
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/filipefialhocosta%40gmail.com/events?sendUpdates=all",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n(() => {\n  const dataStr = $fromAI('data_inicio', 'Data e hora de início da consulta, em formato ISO 8601. Deve ser um dia útil entre segunda e quinta-feira, entre 09:00 e 17:00.', 'string');\n  const start = new Date(dataStr);\n  const diaSemana = start.getDay();\n  const hora = start.getHours();\n\n  if (diaSemana < 1 || diaSemana > 4) {\n    throw new Error('Horário rejeitado: só é permitido agendar de segunda a quinta-feira.');\n  }\n  if (hora < 9 || hora >= 17) {\n    throw new Error('Horário rejeitado: só é permitido agendar entre 09:00 e 17:00.');\n  }\n\n  const end = new Date(start);\n  end.setHours(end.getHours() + 1);\n\n  return JSON.stringify({\n    summary: $fromAI('titulo_consulta', 'Título da consulta agendada', 'string'),\n    start: { dateTime: start.toISOString(), timeZone: 'America/Sao_Paulo' },\n    end: { dateTime: end.toISOString(), timeZone: 'America/Sao_Paulo' },\n    attendees: [\n      { email: $fromAI('email_lead', 'E-mail do lead coletado durante a conversa, usado para enviar o convite da consulta', 'string') },\n      { email: 'filipovesrd@gmail.com' }\n    ]\n  });\n})()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        832,
+        144
+      ],
+      "id": "509d5a05-320e-4b44-8ce2-e1a4320d7ba2",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "zYTvn61EzMOqenZ8",
+          "name": "Google Calendar account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Mensagem do Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verificar_elegibilidade": {
+      "ai_tool": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verificar_disponibilidade": {
+      "ai_tool": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheila": {
+      "main": [
+        [
+          {
+            "node": "Responder Lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Notificar Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Outra Área",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Mensagem do Lead": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Sheila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "Sheila",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
