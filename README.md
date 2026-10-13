@@ -41,8 +41,6 @@ O Dr. Danilo Duarte é advogado especializado em aposentadoria e anuncia seus se
 
 ## 📄 Contexto
 
-Este projeto foi desenvolvido como parte do **Polimatas Hackathon n8n**, onde 5 participantes têm seu desempenho avaliado e apenas 1 é selecionado para ingressar na empresa.
+Este projeto foi desenvolvido como parte do **Polimatas Hackathon n8n**.
 
----
 
-*Desenvolvido por Filipe367-ux*
